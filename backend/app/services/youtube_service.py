@@ -17,11 +17,37 @@ def extract_video_id(url : str) -> str | None:
 
 def get_transcript(video_id : str) -> str | None:
 
+    raw_transcript = ''
+
     try:
 
-        transcript_list = YouTubeTranscriptApi().fetch(video_id,languages=['en'])
+        api = YouTubeTranscriptApi()
 
-        transcript = ' '.join(chunk.text for chunk in transcript_list)
+        transcript_list = api.list(video_id)
+
+        found = False
+
+        for transcript in transcript_list:
+
+            if found:
+                break
+
+            elif transcript.is_generated == False and transcript.language_code == 'en':
+                raw_transcript = transcript.fetch()
+                break
+
+            elif transcript.is_generated == True and transcript.language_code == 'en':
+                raw_transcript = transcript.fetch()
+                break
+            elif transcript.is_translatable:
+                for language in transcript.translation_languages:
+                    if language.language_code == 'en':
+                        script = transcript.translate('en')
+                        raw_transcript = script.fetch()
+                        found = True
+                        break
+
+        transcript = ' '.join(chunk.text for chunk in raw_transcript)
 
         return transcript
 
