@@ -1,8 +1,8 @@
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_core.documents import Document
-from pinecone import Pinecone
-from langchain_pinecone import PineconeVectorStore
 from dotenv import load_dotenv
+from langchain_core.documents import Document
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
 import os
 import time
 
@@ -13,6 +13,7 @@ load_dotenv()
 embedding_model = GoogleGenerativeAIEmbeddings(
     model="gemini-embedding-2"
 )
+
 
 pc = Pinecone(
     api_key=os.getenv("PINECONE")
@@ -40,8 +41,8 @@ def store_chunks(chunks: list[Document], video_id: str) -> None:
         batch = chunks[start:end]
 
         ids = [
-            f"{video_id}_{index}"
-            for index in range(start, start + len(batch))
+            f"{video_id}_{i}"
+            for i in range(start, start + len(batch))
         ]
 
         vector_store.add_documents(
@@ -50,23 +51,20 @@ def store_chunks(chunks: list[Document], video_id: str) -> None:
         )
 
         if end < total_chunks:
+
             time.sleep(60)
 
 
 def search_chunks(user_query: str, video_id: str) -> list[Document]:
 
-    retriever = vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={
-            "k": 4,
-            "filter": {
-                "video_id": {
-                    "$eq": video_id
-                }
+    result = vector_store.similarity_search(
+        user_query,
+        k=4,
+        filter={
+            "video_id": {
+                "$eq": video_id
             }
         }
     )
-
-    result = retriever.invoke(user_query)
 
     return result
